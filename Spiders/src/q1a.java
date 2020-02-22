@@ -3,9 +3,7 @@ import java.util.ArrayList;
 public class q1a {
 	// Constants
 	public static final float Boundary = 1000.0f;
-	// Global Variables
-	ArrayList<Point> region = new ArrayList<Point>();
-
+	
 	public static void main(String[] args) {
 		int n, t, k;
 		
@@ -17,8 +15,31 @@ public class q1a {
 
 	}
 	
-	public static void CreatePoints() {
+	public class SpiderWeb {
+		ArrayList<Point> region;
+		int totalPoints, totalThreads, failureTolerance;
 		
+		SpiderWeb(int n, int t, int k){
+			this.totalPoints = n;
+			this.totalThreads = t;
+			this.failureTolerance = k;
+			
+			region = new ArrayList<Point>();
+		}
+		
+		public void CreatePoints() {
+			// create corner points
+			Point topLeft = new Point(0.0f, Boundary);
+			Point bottomLeft = new Point(0.0f, 0.0f);
+			Point topRight = new Point(Boundary, Boundary);
+			Point bottomRight = new Point(Boundary, 0.0f);
+			region.add(topLeft);
+			region.add(bottomLeft);
+			region.add(topRight);
+			region.add(bottomRight);
+			
+			// Randomly create the (n-4) remaining points
+		}
 	}
 	
 	public class Point{
