@@ -7,6 +7,10 @@ public class q1a {
 	public static final float Boundary = 1000.0f;
 	public static final float Margin = 0.2f; // threshold for comparing float values
 	
+	// Global Variables
+	SpiderWeb web;
+	Random rnd = new Random();
+	
 	public static void main(String[] args) {
 		int n, t, k;
 		
@@ -20,15 +24,15 @@ public class q1a {
 	}
 	
 	public void execute(int n, int t, int k) {
-		SpiderWeb web = new SpiderWeb(n, t, k);
+		web = new SpiderWeb(n, t, k);
 		web.CreatePoints();
-
+		TriangulationThread aThread = new TriangulationThread(10);
+		aThread.run();
 	}
 	
 	public class SpiderWeb {
 		ArrayList<Point> pointSet;
 		int totalPoints, totalThreads, failureTolerance;
-		Random rnd = new Random();
 		
 		SpiderWeb(int n, int t, int k){
 			this.totalPoints = n;
@@ -55,6 +59,7 @@ public class q1a {
 				float randX = rnd.nextFloat() * Boundary;
 				float randY = rnd.nextFloat() * Boundary;
 				boolean overlap = false;
+				
 				//check if overlaps with another point
 				for(Point point: pointSet) {
 					if(Math.abs(randX-point.x) < Margin && Math.abs(randY-point.y) < Margin) {
@@ -62,15 +67,12 @@ public class q1a {
 						break;
 					}
 				}
+				
 				if(!overlap) {
 					Point pointCreated = new Point(randX, randY);
 					pointSet.add(pointCreated);
 					remaining--;
 				}
-			}
-			
-			for(Point point: pointSet) {
-				System.out.println("Point created = ("+point.x+", "+point.y+")");
 			}
 		}
 	}
@@ -90,6 +92,35 @@ public class q1a {
 		public synchronized void accessAdjacentPoints() {
 			
 		}
+		
+		public String toString() {
+			return "("+x+", "+y+")";
+		}
+	}
+	
+	public class TriangulationThread implements Runnable{
+		int edgesToDraw = 0; 
+		
+		TriangulationThread(int k){
+			edgesToDraw = k;
+		}
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			while(edgesToDraw > 0) {
+				// pick random indexes
+				int n = web.pointSet.size();
+				int index1 = rnd.nextInt(web.pointSet.size());
+				int index2 = rnd.nextInt(web.pointSet.size());
+				index2 = index2 == index1 ? (index1+1) % (n-1) : index2;
+				System.out.println("index 1 = "+index1+"   index2 = "+index2);
+				System.out.println(web.pointSet.get(0).toString());
+				edgesToDraw--;
+			}
+			
+		}
+		
 	}
 
 }
