@@ -10,6 +10,8 @@ public class q1a {
 	// Global Variables
 	SpiderWeb web;
 	Random rnd = new Random();
+	ArrayList<TriangulationThread> threads = new ArrayList<TriangulationThread>();
+	int totalEdges = 0;
 	
 	public static void main(String[] args) {
 		int n, t, k;
@@ -18,21 +20,42 @@ public class q1a {
 		t = Integer.parseInt(args[1]); //number of threads
 		k = Integer.parseInt(args[2]); //failure tolerance
 		
-		System.out.println("n= "+n+" t= "+t+" k="+k);
+		System.out.println("n= "+n+" t= "+t+" k="+k+"\n");
 		q1a q1a = new q1a();
 		q1a.execute(n, t, k);
 	}
 	
-	public void execute(int n, int t, int k) {
+	public SpiderWeb execute(int n, int t, int k) {
 		web = new SpiderWeb(n, t, k);
 		web.CreatePoints();
-		TriangulationThread aThread = new TriangulationThread(10);
-		aThread.run();
+		
+		for(int i = 0; i < t; i++) {
+			//create t threads
+			threads.add(new TriangulationThread(k));
+		}
+		
+		for(TriangulationThread thread: threads) {
+			thread.start();
+		}
+		
+		for(TriangulationThread thread: threads) {
+			try {
+				// waits for this thread to die
+				thread.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		System.out.println("\ntotal edges added = "+totalEdges);
+		
+		return web;
 	}
 	
 	public class SpiderWeb {
 		ArrayList<Point> pointSet;
 		int totalPoints, totalThreads, failureTolerance;
+		boolean stopAddingEdges = false;
 		
 		SpiderWeb(int n, int t, int k){
 			this.totalPoints = n;
@@ -80,17 +103,28 @@ public class q1a {
 	public class Point{
 		float x, y;
 		ArrayList<Point> adjacentPoints; 
+		boolean occupied;
 		
 		Point(float x, float y){
 			//coordinates
 			this.x = x;
 			this.y = y;
 			this.adjacentPoints = new ArrayList<Point>();
+			occupied = false; //default
 		}
 		
 		// Monitor to access the adjacent point list of this object
-		public synchronized void accessAdjacentPoints() {
+		// returns true if end point of edge was successfully added to the list
+		public synchronized boolean addEdge(Point endPoint) {
+			// check whether the point has already been added
+			if(adjacentPoints.contains(endPoint)) {
+				//System.out.println("Failed to add: point already in list");
+				return false;
+			}else {
+				adjacentPoints.add(endPoint);
+			}
 			
+			return true;
 		}
 		
 		public String toString() {
@@ -98,27 +132,53 @@ public class q1a {
 		}
 	}
 	
-	public class TriangulationThread implements Runnable{
-		int edgesToDraw = 0; 
+	public class TriangulationThread extends Thread{
+		int k = 0;
+		boolean exit = false;
 		
 		TriangulationThread(int k){
-			edgesToDraw = k;
+			this.k = k;
 		}
 
 		@Override
 		public void run() {
-			// TODO Auto-generated method stub
-			while(edgesToDraw > 0) {
+			int failedToAdd=0;
+			int counter = 0;
+			
+			while(failedToAdd < k && !exit) {
 				// pick random indexes
 				int n = web.pointSet.size();
 				int index1 = rnd.nextInt(web.pointSet.size());
 				int index2 = rnd.nextInt(web.pointSet.size());
 				index2 = index2 == index1 ? (index1+1) % (n-1) : index2;
-				System.out.println("index 1 = "+index1+"   index2 = "+index2);
-				System.out.println(web.pointSet.get(0).toString());
-				edgesToDraw--;
+				Point point1 = web.pointSet.get(index1);
+				Point point2 = web.pointSet.get(index2);
+				
+				// try adding reference from point 1 to point2
+				boolean point2_wasAdded = point1.addEdge(point2);
+				
+				if(point2_wasAdded) {
+					// add reference from point2 to point1
+					point2.addEdge(point1);
+					counter++;
+					
+				}else {
+					failedToAdd++;
+				}
+				
+				synchronized(web){
+					exit = web.stopAddingEdges;
+				}
 			}
 			
+			// failed to add k numbers, set the stop all thread flag to true
+			synchronized(web){
+				if(!web.stopAddingEdges) {
+					web.stopAddingEdges = true;
+				}
+				totalEdges = totalEdges + counter;
+				System.out.println("thread "+ this.getId()+" added "+counter+" edges");
+			}
 		}
 		
 	}
