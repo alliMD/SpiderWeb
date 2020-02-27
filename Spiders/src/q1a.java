@@ -48,6 +48,7 @@ public class q1a {
 		}
 		
 		System.out.println("\ntotal edges added = "+totalEdges);
+		System.out.println("---- q1a finished ----\n");
 		
 		return web;
 	}

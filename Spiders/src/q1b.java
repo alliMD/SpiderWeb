@@ -5,9 +5,10 @@ import java.util.TimerTask;
 
 public class q1b {
 	
-	// global variable
+	// global variables
 	q1a.SpiderWeb web;
 	Random rnd = new Random();
+	ArrayList<SpiderThread> spiders = new ArrayList<SpiderThread>();
 
 	public static void main(String[] args) {
 		int n, t, k, m;
@@ -17,7 +18,9 @@ public class q1b {
 		k = Integer.parseInt(args[2]); //failure tolerance
 		m = Integer.parseInt(args[3]); //seconds to run
 		
-		System.out.println("n= "+n+" t= "+t+" k="+k+" m="+m+"\n");
+		System.out.println("---- q1b parameters ----");
+		System.out.println("n= "+n+" t= "+t+" k= "+k+" m= "+m);
+		System.out.println("------------------------");
 		
 		q1b q1b = new q1b();
 		q1b.execute(n, t, k, m);
@@ -31,12 +34,40 @@ public class q1b {
 		// Create Threads
 		for(int i = 0; i < t; i++) {
 			SpiderThread spider = new SpiderThread(n);
+			spiders.add(spider);
 		}
+		
+		// schedule a timer 
+		new FutureScheduler(m);
+		
+		//start threads
+		for(SpiderThread spider: spiders) {
+			spider.start();
+		}
+		
+		// wait for threads to end to show the final number of moves 
+		// each spider has made
+		for(SpiderThread spider: spiders) {
+			try {
+				spider.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		int dummyIndex = 1;
+		for(SpiderThread spider: spiders) {
+			System.out.println("Spider "+dummyIndex+" has jumped "+spider.totalJumps+" times");
+			dummyIndex++;
+		}
+		
+		System.out.println("---- q1b finished ----\n");
 	}
 	
 	class SpiderThread extends Thread{
-		q1a.Point body; 
-		q1a.Point[] legs = new q1a.Point[3]; //3 legs
+		q1a.Point body;
+		q1a.Point[] legs = new q1a.Point[3];
 		int totalPoints= 0; // total points in web
 		int totalJumps = 0; // total jumps executed by the spider thread
 		
@@ -82,7 +113,23 @@ public class q1b {
 												failedToJump = true;
 											}else {
 												// Spider can make the jump!
+												// note: we are holding 4 locks here
+												leg0.occupied = true;
+												leg1.occupied = true;
+												leg2.occupied = true;
+												bodyPoint.occupied = true;
 												
+												// release current occupied points
+												freeOldPoints();
+												
+												// replace with new destination point
+												this.legs[0] = leg0;
+												this.legs[1] = leg1;
+												this.legs[2] = leg2;
+												this.body = bodyPoint;
+												
+												// increase jump counter
+												this.totalJumps++;
 											}
 										} // release lock of leg2
 									}
@@ -96,9 +143,37 @@ public class q1b {
 				if(failedToJump) {
 					// sleep
 					// toggle sleep time
+					int selectedTime = rnd.nextInt(2);
+					long sleepTime = selectedTime == 0 ? 40:50;
+					
+					try {
+						Thread.sleep(sleepTime);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
-				
 			}
+			
+			// Thread no longer tries to jump
+		}
+		
+		public void freeOldPoints() {
+			if(body != null) {
+				synchronized(body) {
+					synchronized(legs[0]) {
+						synchronized(legs[1]) {
+							synchronized(legs[2]){
+								body.occupied = false;
+								legs[0].occupied = false;
+								legs[1].occupied = false;
+								legs[2].occupied = false;
+							}
+						}
+					}
+				}
+			}
+			// else, the spider was not occupying any points
 		}
 		
 		public void stopJumping() {
@@ -108,17 +183,15 @@ public class q1b {
 	
 	class FutureScheduler{
 		Timer timer;
-		ArrayList<SpiderThread> threads = new ArrayList<SpiderThread>();
 		
-		FutureScheduler(ArrayList<SpiderThread> spiders, int seconds){
+		FutureScheduler(int seconds){
 			 timer = new Timer();
 		     timer.schedule(new ScheduledTask(), seconds*1000);
-		     this.threads = spiders;
 		}
 		
 		class ScheduledTask extends TimerTask {
 	        public void run() {
-	            for(SpiderThread spider: threads) {
+	            for(SpiderThread spider: spiders) {
 	            	spider.stopJumping();
 	            }
 	            timer.cancel(); //Terminate the timer thread
