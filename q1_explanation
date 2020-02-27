@@ -1,0 +1,45 @@
+Allison Mejia, 260742943
+McGill University - Comp409
+
+Assignment 2 - Question 1
+-----------------------------------
+My code for question 1 has no deadlock for the following reasons:
+
+	Question 1 - a)
+	- q1a creates random points in the web sequentially so that is not a critical section we should worry about
+	- t threads are used to create edges in the web
+	- a synchronized method was created to access and add a new point in the adjacent point list of any given point and returns whether the addition was succesfull 
+	- if a thread runs this method first, no other thread will be allowed to access the targeted point
+	- a triangulation thread start its run by getting 2 random points in the web
+	- it calls the synchronized "add edge method" from point1 to point2 and checks whether the addition was sucessfull
+	- if it was, it calls the "add edge method" but this time from point 2 to point 1
+	- it increases the local counter of the total edges added
+	- else if the first "add edge" method failed, it increases a failed counter
+	- this terminates after the failed counter passes the tolerated failure score is passed.
+
+	 Question 1 - b)
+	 - spider threads start their run with no previous points occupied
+	 - a random point index is selected as the body point reference
+	 - a lock is acquired for the given body point
+	 - if the body point is occupied, it toggles a "failed to jump flag" to true and exits the lock
+	 - else, the spider checks whether the body point has enough adjacent points for the legs of the spider
+	 - if not, the flag is also set to true and it exits the lock
+	 - else, we get the point objects of the adjacent point list of the body point (recall we are still holding the lock of the body point)
+	 - we acquire the lock for the point that will be used for leg0 and check whether it is occupied
+	 - if it is, the failure flag is set to true and we exit the leg0 lock and then the bodypoint lock
+	 - if not, we acquire the lock for leg1 and check for the same condition
+	 - if it is occupied, the failure flag is set to true and we release the lock for leg 1, then leg0 and lastly, the body.
+	 - if it is not occupied, we aquire the lock for leg 2 and check for the occupied condition
+	 - if it is not occupied, we have acquire 4 locks at this point
+	 - we change the occupied booleans for all the new destination points
+	 - we free the current position points by acquiring the locks of the current used points in the same nested manner and set their occupied boolean to false
+	 - If another thread had acquired access to any of this point at the body stage, it would soon return the lock after checking the if occupied condition where it would still be true.
+	 - after we "freed" the old points, we update the new body and leg points of the spider and increame the jump counter of the spider and release the locks in this order: leg2, leg1, leg0, body.
+	 - threads finish when their stop boolean is set to true by a timer thread started so that the code runs for m seconds.
+
+	 
+
+
+
+
+

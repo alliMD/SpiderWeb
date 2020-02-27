@@ -151,7 +151,10 @@ public class q1a {
 				int n = web.pointSet.size();
 				int index1 = rnd.nextInt(web.pointSet.size());
 				int index2 = rnd.nextInt(web.pointSet.size());
+				
+				// ensure that index1 and index 2 are not the same
 				index2 = index2 == index1 ? (index1+1) % (n-1) : index2;
+				
 				Point point1 = web.pointSet.get(index1);
 				Point point2 = web.pointSet.get(index2);
 				
